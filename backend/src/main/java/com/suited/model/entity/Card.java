@@ -56,11 +56,16 @@ public class Card {
     private boolean isVisible = true;
 
     public Card() {
+        // JPA를 위한 기본 생성자
+        this.isCommunityCard = false;
+        this.isVisible = true;
     }
 
     public Card(CardSuit suit, CardRank rank) {
         this.suit = suit;
         this.rank = rank;
+        this.isCommunityCard = false;
+        this.isVisible = true;
     }
 
     /**

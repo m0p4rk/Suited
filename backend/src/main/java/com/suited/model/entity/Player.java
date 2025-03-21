@@ -1,6 +1,7 @@
 package com.suited.model.entity;
 
 import com.suited.model.enums.PlayerState;
+import com.suited.model.enums.BetType;
 import jakarta.persistence.*;
 import lombok.Getter;
 import lombok.Setter;
@@ -14,12 +15,13 @@ import java.util.List;
  * 
  * 플레이어의 속성:
  * - betAmount: 현재 베팅 금액
- * - state: 플레이어의 상태 (ACTIVE, FOLDED, ALL_IN)
+ * - state: 플레이어의 상태 (ACTIVE, FOLDED, ALL_IN, LEFT_GAME, LEFT_ROOM)
  * - position: 테이블에서의 위치 (0부터 시작)
  * - stack: 보유한 칩의 수
  * - isDealer: 딜러 여부
  * - isSmallBlind: 스몰 블라인드 여부
  * - isBigBlind: 빅 블라인드 여부
+ * - lastBetType: 마지막 베팅 유형
  * 
  * 관계:
  * - user: 플레이어의 사용자 정보
@@ -28,6 +30,7 @@ import java.util.List;
  * - cards: 플레이어의 홀카드 목록
  * 
  * @see com.suited.model.enums.PlayerState
+ * @see com.suited.model.enums.BetType
  * @see com.suited.model.entity.User
  * @see com.suited.model.entity.GameRoom
  * @see com.suited.model.entity.Game
@@ -54,7 +57,8 @@ public class Player {
     @JoinColumn(name = "game_id")
     private Game game;
 
-    @OneToMany(mappedBy = "player", cascade = CascadeType.ALL)
+    @ElementCollection
+    @CollectionTable(name = "player_cards")
     private List<Card> cards = new ArrayList<>();
 
     @Column(nullable = false, precision = 10, scale = 2)
@@ -63,6 +67,10 @@ public class Player {
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
     private PlayerState state = PlayerState.ACTIVE;
+
+    @Enumerated(EnumType.STRING)
+    @Column
+    private BetType lastBetType;
 
     @Column(nullable = false)
     private Integer position;
@@ -91,10 +99,12 @@ public class Player {
     /**
      * 플레이어의 베팅 금액을 증가
      * @param amount 증가할 금액
+     * @param betType 베팅 유형
      */
-    public void increaseBet(BigDecimal amount) {
+    public void increaseBet(BigDecimal amount, BetType betType) {
         this.betAmount = this.betAmount.add(amount);
         this.stack = this.stack.subtract(amount);
+        this.lastBetType = betType;
     }
 
     /**
@@ -119,5 +129,28 @@ public class Player {
      */
     public boolean isFolded() {
         return state == PlayerState.FOLDED;
+    }
+
+    /**
+     * 플레이어가 게임을 나갔는지 확인
+     * @return 게임을 나갔는지 여부
+     */
+    public boolean hasLeftGame() {
+        return state == PlayerState.LEFT_GAME;
+    }
+
+    /**
+     * 플레이어가 게임방을 나갔는지 확인
+     * @return 게임방을 나갔는지 여부
+     */
+    public boolean hasLeftRoom() {
+        return state == PlayerState.LEFT_ROOM;
+    }
+
+    /**
+     * 플레이어의 카드를 모두 제거
+     */
+    public void clearCards() {
+        cards.clear();
     }
 } 

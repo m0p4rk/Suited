@@ -17,7 +17,7 @@ import java.util.List;
  * 
  * 게임방의 속성:
  * - name: 게임방 이름
- * - state: 게임방의 상태 (WAITING, STARTING, PREFLOP, FLOP, TURN, RIVER, SHOWDOWN, ENDED)
+ * - state: 게임방의 상태 (PREFLOP, FLOP, TURN, RIVER, SHOWDOWN, FINISHED)
  * - maxPlayers: 최대 플레이어 수 (기본값: 9)
  * - minPlayers: 최소 플레이어 수 (기본값: 2)
  * - smallBlind: 스몰 블라인드 금액 (기본값: 10)
@@ -60,7 +60,7 @@ public class GameRoom {
 
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
-    private GameState state = GameState.WAITING;
+    private GameState state = GameState.PREFLOP;
 
     @Column(nullable = false)
     private Integer maxPlayers = 9;
@@ -142,5 +142,18 @@ public class GameRoom {
         this.smallBlind = smallBlind;
         this.bigBlind = bigBlind;
         this.buyIn = buyIn;
+    }
+
+    /**
+     * 현재 게임을 설정하고 게임방 상태를 업데이트
+     * @param game 설정할 게임
+     */
+    public void setCurrentGame(Game game) {
+        this.currentGame = game;
+        if (game != null) {
+            this.state = game.getState();
+        } else {
+            this.state = GameState.PREFLOP;
+        }
     }
 } 

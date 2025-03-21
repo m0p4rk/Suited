@@ -10,6 +10,18 @@ import java.util.stream.Collectors;
 
 /**
  * 포커 핸드를 평가하는 클래스
+ * 
+ * 핸드 순위 (높은 순):
+ * 1. 로열 플러시 (Royal Flush)
+ * 2. 스트레이트 플러시 (Straight Flush)
+ * 3. 포카드 (Four of a Kind)
+ * 4. 풀하우스 (Full House)
+ * 5. 플러시 (Flush)
+ * 6. 스트레이트 (Straight)
+ * 7. 트리플 (Three of a Kind)
+ * 8. 투페어 (Two Pair)
+ * 9. 원페어 (One Pair)
+ * 10. 하이카드 (High Card)
  */
 public class HandEvaluator {
     /**
@@ -18,48 +30,131 @@ public class HandEvaluator {
      * @return 핸드의 강도와 관련 카드들
      */
     public static HandStrength evaluateHand(List<Card> cards) {
-        if (cards.size() < 5) {
+        if (cards == null || cards.size() < 5) {
             throw new IllegalArgumentException("최소 5장의 카드가 필요합니다.");
         }
 
+        // 중복 카드 제거
+        List<Card> uniqueCards = cards.stream()
+                .distinct()
+                .collect(Collectors.toList());
+
+        if (uniqueCards.size() < 5) {
+            throw new IllegalArgumentException("중복되지 않은 최소 5장의 카드가 필요합니다.");
+        }
+
         // 로열 플러시 체크
-        HandStrength royalFlush = checkRoyalFlush(cards);
+        HandStrength royalFlush = checkRoyalFlush(uniqueCards);
         if (royalFlush != null) return royalFlush;
 
         // 스트레이트 플러시 체크
-        HandStrength straightFlush = checkStraightFlush(cards);
+        HandStrength straightFlush = checkStraightFlush(uniqueCards);
         if (straightFlush != null) return straightFlush;
 
         // 포카드 체크
-        HandStrength fourOfAKind = checkFourOfAKind(cards);
+        HandStrength fourOfAKind = checkFourOfAKind(uniqueCards);
         if (fourOfAKind != null) return fourOfAKind;
 
         // 풀하우스 체크
-        HandStrength fullHouse = checkFullHouse(cards);
+        HandStrength fullHouse = checkFullHouse(uniqueCards);
         if (fullHouse != null) return fullHouse;
 
         // 플러시 체크
-        HandStrength flush = checkFlush(cards);
+        HandStrength flush = checkFlush(uniqueCards);
         if (flush != null) return flush;
 
         // 스트레이트 체크
-        HandStrength straight = checkStraight(cards);
+        HandStrength straight = checkStraight(uniqueCards);
         if (straight != null) return straight;
 
         // 트리플 체크
-        HandStrength threeOfAKind = checkThreeOfAKind(cards);
+        HandStrength threeOfAKind = checkThreeOfAKind(uniqueCards);
         if (threeOfAKind != null) return threeOfAKind;
 
         // 투페어 체크
-        HandStrength twoPair = checkTwoPair(cards);
+        HandStrength twoPair = checkTwoPair(uniqueCards);
         if (twoPair != null) return twoPair;
 
         // 원페어 체크
-        HandStrength onePair = checkOnePair(cards);
+        HandStrength onePair = checkOnePair(uniqueCards);
         if (onePair != null) return onePair;
 
         // 하이카드
-        return checkHighCard(cards);
+        return checkHighCard(uniqueCards);
+    }
+
+    /**
+     * 두 핸드의 강도를 비교합니다.
+     * @param hand1 첫 번째 핸드
+     * @param hand2 두 번째 핸드
+     * @return 비교 결과 (양수: hand1이 더 강함, 음수: hand2가 더 강함, 0: 동일)
+     */
+    public static int compareHands(List<Card> hand1, List<Card> hand2) {
+        HandStrength strength1 = evaluateHand(hand1);
+        HandStrength strength2 = evaluateHand(hand2);
+        return strength1.compareTo(strength2);
+    }
+
+    /**
+     * 핸드의 이름을 반환합니다.
+     * @param hand 핸드
+     * @return 핸드의 이름
+     */
+    public static String getHandName(List<Card> hand) {
+        HandRank rank = evaluateHand(hand).getRank();
+        switch (rank) {
+            case ROYAL_FLUSH: return "로열 플러시";
+            case STRAIGHT_FLUSH: return "스트레이트 플러시";
+            case FOUR_OF_A_KIND: return "포카드";
+            case FULL_HOUSE: return "풀하우스";
+            case FLUSH: return "플러시";
+            case STRAIGHT: return "스트레이트";
+            case THREE_OF_A_KIND: return "트리플";
+            case TWO_PAIR: return "투페어";
+            case ONE_PAIR: return "원페어";
+            case HIGH_CARD: return "하이카드";
+            default: return "알 수 없는 핸드";
+        }
+    }
+
+    /**
+     * 핸드의 설명을 반환합니다.
+     * @param hand 핸드
+     * @return 핸드의 설명
+     */
+    public static String getHandDescription(List<Card> hand) {
+        HandStrength strength = evaluateHand(hand);
+        List<Card> cards = strength.getCards();
+        HandRank rank = strength.getRank();
+
+        switch (rank) {
+            case ROYAL_FLUSH:
+                return String.format("로열 플러시: %s", cards.get(0).getSuit().toString());
+            case STRAIGHT_FLUSH:
+                return String.format("스트레이트 플러시: %s %s", cards.get(0).getRank().toString(), cards.get(0).getSuit().toString());
+            case FOUR_OF_A_KIND:
+                return String.format("포카드: %s", cards.get(0).getRank().toString());
+            case FULL_HOUSE:
+                return String.format("풀하우스: %s 트리플, %s 페어", 
+                    cards.get(0).getRank().toString(), cards.get(3).getRank().toString());
+            case FLUSH:
+                return String.format("플러시: %s %s", cards.get(0).getSuit().toString(), 
+                    cards.stream().map(c -> c.getRank().toString()).collect(Collectors.joining(", ")));
+            case STRAIGHT:
+                return String.format("스트레이트: %s", 
+                    cards.stream().map(c -> c.getRank().toString()).collect(Collectors.joining(" - ")));
+            case THREE_OF_A_KIND:
+                return String.format("트리플: %s", cards.get(0).getRank().toString());
+            case TWO_PAIR:
+                return String.format("투페어: %s, %s", 
+                    cards.get(0).getRank().toString(), cards.get(2).getRank().toString());
+            case ONE_PAIR:
+                return String.format("원페어: %s", cards.get(0).getRank().toString());
+            case HIGH_CARD:
+                return String.format("하이카드: %s", cards.get(0).getRank().toString());
+            default:
+                return "알 수 없는 핸드";
+        }
     }
 
     private static HandStrength checkRoyalFlush(List<Card> cards) {

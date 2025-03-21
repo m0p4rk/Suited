@@ -1,9 +1,11 @@
 package com.suited.model.entity;
 
 import com.suited.model.enums.GameState;
+import com.suited.model.enums.BettingRound;
 import jakarta.persistence.*;
 import lombok.Getter;
 import lombok.Setter;
+import org.hibernate.annotations.SQLRestriction;
 
 import java.math.BigDecimal;
 import java.util.ArrayList;
@@ -14,22 +16,22 @@ import java.util.List;
  * 
  * 게임의 속성:
  * - pot: 현재 팟의 금액
- * - state: 게임의 진행 상태 (WAITING, STARTING, PREFLOP, FLOP, TURN, RIVER, SHOWDOWN, ENDED)
+ * - state: 게임의 진행 상태 (PREFLOP, FLOP, TURN, RIVER, SHOWDOWN, FINISHED)
  * - currentBet: 현재 베팅 라운드의 최고 베팅 금액
  * - currentPlayerIndex: 현재 턴의 플레이어 인덱스
- * - dealerIndex: 딜러 버튼의 위치
+ * - dealerPosition: 딜러 버튼의 위치
  * - smallBlindIndex: 스몰 블라인드의 위치
  * - bigBlindIndex: 빅 블라인드의 위치
- * - smallBlind: 스몰 블라인드 금액
- * - bigBlind: 빅 블라인드 금액
- * - buyIn: 게임 참여에 필요한 최소 금액
+ * - lastRaisePosition: 마지막 레이즈한 플레이어의 위치
+ * - currentBettingRound: 현재 베팅 라운드
  * 
  * 관계:
  * - room: 게임이 진행되는 게임방
  * - players: 게임에 참여한 플레이어 목록
- * - communityCards: 공개된 커뮤니티 카드 목록
+ * - communityCards: 공개된 커뮤니티 카드 목록 (is_community_card = true인 카드만)
  * 
  * @see com.suited.model.enums.GameState
+ * @see com.suited.model.enums.BettingRound
  * @see com.suited.model.entity.GameRoom
  * @see com.suited.model.entity.Player
  * @see com.suited.model.entity.Card
@@ -43,46 +45,38 @@ public class Game {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "room_id", nullable = false)
+    @OneToOne
+    @JoinColumn(name = "room_id")
     private GameRoom room;
+
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false)
+    private GameState state = GameState.PREFLOP;
+
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false)
+    private BettingRound currentBettingRound = BettingRound.PREFLOP;
+
+    private BigDecimal currentBet;
+
+    private BigDecimal pot;
+
+    private int dealerPosition;
+
+    private int smallBlindIndex;
+
+    private int bigBlindIndex;
+
+    private int currentPlayerIndex;
+
+    private int lastRaisePosition;
 
     @OneToMany(mappedBy = "game", cascade = CascadeType.ALL)
     private List<Player> players = new ArrayList<>();
 
     @OneToMany(mappedBy = "game", cascade = CascadeType.ALL)
+    @SQLRestriction("is_community_card = true")
     private List<Card> communityCards = new ArrayList<>();
-
-    @Column(nullable = false, precision = 10, scale = 2)
-    private BigDecimal pot = BigDecimal.ZERO;
-
-    @Enumerated(EnumType.STRING)
-    @Column(nullable = false)
-    private GameState state = GameState.WAITING;
-
-    @Column(nullable = false, precision = 10, scale = 2)
-    private BigDecimal currentBet = BigDecimal.ZERO;
-
-    @Column(nullable = false)
-    private Integer currentPlayerIndex = 0;
-
-    @Column(nullable = false)
-    private Integer dealerIndex = 0;
-
-    @Column(nullable = false)
-    private Integer smallBlindIndex = 0;
-
-    @Column(nullable = false)
-    private Integer bigBlindIndex = 0;
-
-    @Column(nullable = false)
-    private Long smallBlind;
-
-    @Column(nullable = false)
-    private Long bigBlind;
-
-    @Column(nullable = false)
-    private Long buyIn;
 
     /**
      * 게임에 플레이어를 추가
@@ -90,7 +84,14 @@ public class Game {
      */
     public void addPlayer(Player player) {
         players.add(player);
-        player.setGame(this);
+    }
+
+    /**
+     * 게임에서 플레이어를 제거
+     * @param player 제거할 플레이어
+     */
+    public void removePlayer(Player player) {
+        players.remove(player);
     }
 
     /**
@@ -99,7 +100,13 @@ public class Game {
      */
     public void addCommunityCard(Card card) {
         communityCards.add(card);
-        card.setGame(this);
+    }
+
+    /**
+     * 커뮤니티 카드를 모두 제거
+     */
+    public void clearCommunityCards() {
+        communityCards.clear();
     }
 
     /**
@@ -127,18 +134,58 @@ public class Game {
     }
 
     /**
+     * 베팅 라운드를 변경
+     * @param newRound 새로운 베팅 라운드
+     */
+    public void changeBettingRound(BettingRound newRound) {
+        this.currentBettingRound = newRound;
+    }
+
+    /**
      * 다음 플레이어의 턴으로 이동
      */
     public void moveToNextPlayer() {
-        currentPlayerIndex = (currentPlayerIndex + 1) % players.size();
+        // Implementation needed
     }
 
     /**
      * 딜러 버튼을 다음 플레이어로 이동
      */
     public void moveDealerButton() {
-        dealerIndex = (dealerIndex + 1) % players.size();
-        smallBlindIndex = (dealerIndex + 1) % players.size();
-        bigBlindIndex = (dealerIndex + 2) % players.size();
+        // Implementation needed
+    }
+
+    public void setDealerIndex(int index) {
+        this.dealerPosition = index;
+        this.smallBlindIndex = (index + 1) % players.size();
+        this.bigBlindIndex = (index + 2) % players.size();
+    }
+
+    public void setSmallBlindIndex(int index) {
+        this.smallBlindIndex = index;
+    }
+
+    public void setBigBlindIndex(int index) {
+        this.bigBlindIndex = index;
+    }
+
+    public void setCurrentPlayerIndex(int index) {
+        this.currentPlayerIndex = index;
+    }
+
+    public int getCurrentPlayerIndex() {
+        return currentPlayerIndex;
+    }
+
+    public int getSmallBlindIndex() {
+        return smallBlindIndex;
+    }
+
+    public int getBigBlindIndex() {
+        return bigBlindIndex;
+    }
+
+    public BigDecimal getBigBlind() {
+        return room.getBigBlind();
     }
 } 

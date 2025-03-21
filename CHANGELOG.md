@@ -43,6 +43,9 @@
     - UserRole: 사용자 권한
     - GameAction: 게임 액션
     - HandRank: 핸드 강도
+    - RoomAction: 게임방 액션
+    - BettingRound: 베팅 라운드
+    - BetType: 베팅 타입
   - 엔티티(Entities) 구현
     - User: 사용자 정보 및 권한 관리
     - GameRoom: 게임방 설정 및 관리
@@ -67,6 +70,12 @@
     - 게임 진행 관리 (Game)
     - 플레이어 상태 관리 (Player)
     - 카드 관리 (Card)
+- 서비스 계층 구현 (2024-03-21 09:00 EDT)
+  - GameService: 게임 진행 및 베팅 관리
+  - GameRoomService: 게임방 관리
+  - PlayerService: 플레이어 관리
+  - HandEvaluator: 핸드 평가
+  - UserService: 사용자 관리
 
 ### Changed
 - 프로젝트 구조를 백엔드 중심에서 풀스택으로 변경 (2024-03-21 03:08 EDT)
@@ -76,12 +85,31 @@
   - 속성 및 관계 설명 추가
   - 메서드 문서화 추가
   - @see 태그를 통한 관련 클래스 참조 추가
+- 게임 상태 관리 개선 (2024-03-21 09:15 EDT)
+  - GameState에서 WAITING, IN_PROGRESS 상태 제거
+  - PlayerState에서 OUT 상태를 LEFT_GAME, LEFT_ROOM으로 분리
+  - GameAction에서 게임방 관련 액션을 RoomAction으로 분리
+  - BettingRound와 BetType 열거형 추가
+- 서비스 계층 문서화 개선 (2024-03-21 09:30 EDT)
+  - 각 서비스 클래스의 역할 및 책임 명확화
+  - 메서드 문서화 개선
+  - 트랜잭션 관리 설명 추가
 
 ### Removed
 - 불필요한 파일 제거 (2024-03-21 03:00 EDT)
+- GameState에서 불필요한 상태 제거 (2024-03-21 09:15 EDT)
+  - WAITING
+  - IN_PROGRESS
+- PlayerState에서 불필요한 상태 제거 (2024-03-21 09:15 EDT)
+  - OUT
+- GameAction에서 게임방 관련 액션 제거 (2024-03-21 09:15 EDT)
 
 ### Fixed
-- 없음
+- PlayerService의 increaseBet 메서드 파라미터 누락 수정 (2024-03-21 09:20 EDT)
+- HandEvaluator의 핸드 평가 로직 개선 (2024-03-21 09:25 EDT)
+  - 중복 카드 제거 로직 추가
+  - 스트레이트 평가 시 Ace-low 스트레이트 고려
+  - 스트림 연산 최적화
 
 ### Security
 - 없음
